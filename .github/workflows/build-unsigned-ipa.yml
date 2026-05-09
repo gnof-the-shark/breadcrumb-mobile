@@ -17,7 +17,7 @@ on:
         default: ""
         type: string
       search_depth:
-        description: Max folder depth to find .xcworkspace/.xcodeproj
+        description: Max depth used by `find -maxdepth` to locate .xcworkspace/.xcodeproj
         required: false
         default: "6"
         type: string
@@ -130,7 +130,7 @@ jobs:
         run: |
           set -euo pipefail
 
-          app_path="$(find "${GITHUB_WORKSPACE}/build/App.xcarchive/Products/Applications" -name '*.app' -maxdepth 1 -print -quit || true)"
+          app_path="$(find "${GITHUB_WORKSPACE}/build/App.xcarchive/Products/Applications" -maxdepth 1 -name '*.app' -print -quit || true)"
           if [[ -z "${app_path}" ]]; then
             echo "No app found in archive." >&2
             exit 1
