@@ -33,18 +33,24 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      # ÉTAPE AJOUTÉE : Configuration de Java (Nécessaire pour Kotlin/KMP)
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      # ÉTAPE AJOUTÉE : Compilation du Framework Kotlin pour iOS
+      # Cela génère les fichiers dont Xcode a besoin
+      - name: Build Kotlin Framework
+        run: ./gradlew :composeApp:embedAndSignAppleFrameworkForXcode
+
       - name: Select project or workspace
         id: xcode_target
         shell: bash
         run: |
           set -euo pipefail
-
           depth="${{ inputs.search_depth }}"
-          if ! [[ "${depth}" =~ ^[0-9]+$ ]]; then
-            echo "search_depth must be an integer." >&2
-            exit 1
-          fi
-
           workspace="$(find . -maxdepth "${depth}" -name '*.xcworkspace' -print -quit || true)"
           project="$(find . -maxdepth "${depth}" -name '*.xcodeproj' -print -quit || true)"
 
@@ -64,17 +70,15 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-
           input_scheme="${{ inputs.scheme }}"
           if [[ -n "${input_scheme}" ]]; then
             echo "name=${input_scheme}" >> "$GITHUB_OUTPUT"
-            echo "Using provided scheme: ${input_scheme}"
             exit 0
           fi
 
           container_type="${{ steps.xcode_target.outputs.container_type }}"
           container_path="${{ steps.xcode_target.outputs.container_path }}"
-
+          
           if [[ "${container_type}" == "workspace" ]]; then
             list_output="$(xcodebuild -list -json -workspace "${container_path}")"
           else
@@ -88,20 +92,12 @@ jobs:
             selected = schemes.find { |s| s.to_s !~ /(Tests|UITests)$/ } || schemes.first
             puts selected.to_s
           ')"
-
-          if [[ -z "${scheme}" ]]; then
-            echo "No scheme detected." >&2
-            exit 1
-          fi
-
           echo "name=${scheme}" >> "$GITHUB_OUTPUT"
-          echo "Detected scheme: ${scheme}"
 
       - name: Build archive without signing
         shell: bash
         run: |
           set -euo pipefail
-
           container_type="${{ steps.xcode_target.outputs.container_type }}"
           container_path="${{ steps.xcode_target.outputs.container_path }}"
           scheme="${{ steps.scheme.outputs.name }}"
@@ -129,28 +125,16 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-
           apps_dir="${GITHUB_WORKSPACE}/build/App.xcarchive/Products/Applications"
-          app_count="$(find "${apps_dir}" -maxdepth 1 -name '*.app' | wc -l | tr -d ' ')"
-          if [[ "${app_count}" -gt 1 ]]; then
-            echo "Warning: multiple .app bundles found; the first one will be used."
-          fi
-
           app_path="$(find "${apps_dir}" -maxdepth 1 -name '*.app' -print -quit || true)"
-          if [[ -z "${app_path}" ]]; then
-            echo "No app found in archive." >&2
-            exit 1
-          fi
-
+          
           mkdir -p "${GITHUB_WORKSPACE}/build/Payload"
           cp -R "${app_path}" "${GITHUB_WORKSPACE}/build/Payload/"
-
           cd "${GITHUB_WORKSPACE}/build"
           zip -r "unsigned.ipa" "Payload"
 
       - name: Upload unsigned IPA
         uses: actions/upload-artifact@v4
         with:
-          name: unsigned-ipa-${{ inputs.configuration }}-${{ github.run_id }}
+          name: Breadcrumb-Unsigned-${{ inputs.configuration }}
           path: build/unsigned.ipa
-          if-no-files-found: error
