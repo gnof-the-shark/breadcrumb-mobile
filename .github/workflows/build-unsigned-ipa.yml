@@ -15,6 +15,8 @@ on:
 jobs:
   build-unsigned-ipa:
     runs-on: macos-latest
+    permissions:
+      contents: read
 
     steps:
       - name: Checkout
@@ -36,7 +38,7 @@ jobs:
             echo "container_type=project" >> "$GITHUB_OUTPUT"
             echo "container_path=${project}" >> "$GITHUB_OUTPUT"
           else
-            echo "Aucun .xcworkspace/.xcodeproj trouvé dans le repo." >&2
+            echo "No .xcworkspace/.xcodeproj found in repository." >&2
             exit 1
           fi
 
@@ -64,7 +66,7 @@ jobs:
           ')"
 
           if [[ -z "${scheme}" ]]; then
-            echo "Aucun scheme détecté." >&2
+            echo "No scheme detected." >&2
             exit 1
           fi
 
@@ -106,7 +108,7 @@ jobs:
 
           app_path="$(find "${GITHUB_WORKSPACE}/build/App.xcarchive/Products/Applications" -name '*.app' -maxdepth 1 -print -quit || true)"
           if [[ -z "${app_path}" ]]; then
-            echo "Aucune app trouvée dans l'archive." >&2
+            echo "No app found in archive." >&2
             exit 1
           fi
 
