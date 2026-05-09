@@ -1,0 +1,124 @@
+name: Build Unsigned IPA
+
+on:
+  workflow_dispatch:
+    inputs:
+      configuration:
+        description: Build configuration
+        required: false
+        default: Release
+        type: choice
+        options:
+          - Release
+          - Debug
+
+jobs:
+  build-unsigned-ipa:
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Select project or workspace
+        id: xcode_target
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          workspace="$(find . -maxdepth 3 -name '*.xcworkspace' -print -quit || true)"
+          project="$(find . -maxdepth 3 -name '*.xcodeproj' -print -quit || true)"
+
+          if [[ -n "${workspace}" ]]; then
+            echo "container_type=workspace" >> "$GITHUB_OUTPUT"
+            echo "container_path=${workspace}" >> "$GITHUB_OUTPUT"
+          elif [[ -n "${project}" ]]; then
+            echo "container_type=project" >> "$GITHUB_OUTPUT"
+            echo "container_path=${project}" >> "$GITHUB_OUTPUT"
+          else
+            echo "Aucun .xcworkspace/.xcodeproj trouvé dans le repo." >&2
+            exit 1
+          fi
+
+      - name: Detect scheme
+        id: scheme
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          container_type="${{ steps.xcode_target.outputs.container_type }}"
+          container_path="${{ steps.xcode_target.outputs.container_path }}"
+
+          if [[ "${container_type}" == "workspace" ]]; then
+            list_output="$(xcodebuild -list -json -workspace "${container_path}")"
+          else
+            list_output="$(xcodebuild -list -json -project "${container_path}")"
+          fi
+
+          scheme="$(echo "${list_output}" | ruby -rjson -e '
+            data = JSON.parse(STDIN.read)
+            root = data["workspace"] || data["project"] || {}
+            schemes = root["schemes"] || []
+            selected = schemes.find { |s| !s.to_s.include?("Tests") } || schemes.first
+            puts selected.to_s
+          ')"
+
+          if [[ -z "${scheme}" ]]; then
+            echo "Aucun scheme détecté." >&2
+            exit 1
+          fi
+
+          echo "name=${scheme}" >> "$GITHUB_OUTPUT"
+          echo "Detected scheme: ${scheme}"
+
+      - name: Build archive without signing
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          container_type="${{ steps.xcode_target.outputs.container_type }}"
+          container_path="${{ steps.xcode_target.outputs.container_path }}"
+          scheme="${{ steps.scheme.outputs.name }}"
+          configuration="${{ inputs.configuration }}"
+
+          build_args=(
+            -scheme "${scheme}"
+            -configuration "${configuration}"
+            -sdk iphoneos
+            -archivePath "${GITHUB_WORKSPACE}/build/App.xcarchive"
+            archive
+            CODE_SIGNING_ALLOWED=NO
+            CODE_SIGNING_REQUIRED=NO
+            CODE_SIGN_IDENTITY=""
+            DEVELOPMENT_TEAM=""
+          )
+
+          if [[ "${container_type}" == "workspace" ]]; then
+            xcodebuild -workspace "${container_path}" "${build_args[@]}"
+          else
+            xcodebuild -project "${container_path}" "${build_args[@]}"
+          fi
+
+      - name: Package unsigned IPA
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          app_path="$(find "${GITHUB_WORKSPACE}/build/App.xcarchive/Products/Applications" -name '*.app' -maxdepth 1 -print -quit || true)"
+          if [[ -z "${app_path}" ]]; then
+            echo "Aucune app trouvée dans l'archive." >&2
+            exit 1
+          fi
+
+          mkdir -p "${GITHUB_WORKSPACE}/build/Payload"
+          cp -R "${app_path}" "${GITHUB_WORKSPACE}/build/Payload/"
+
+          cd "${GITHUB_WORKSPACE}/build"
+          zip -r "unsigned.ipa" "Payload"
+
+      - name: Upload unsigned IPA
+        uses: actions/upload-artifact@v4
+        with:
+          name: unsigned-ipa
+          path: build/unsigned.ipa
+          if-no-files-found: error
