@@ -41,32 +41,48 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      # ÉTAPE AJOUTÉE : Compilation du Framework Kotlin pour iOS
-      # Cela génère les fichiers dont Xcode a besoin
-      - name: Build Kotlin Framework
-        run: ./gradlew :composeApp:embedAndSignAppleFrameworkForXcode
-
-      - name: Select project or workspace
-        id: xcode_target
+      - name: Detect iOS build prerequisites
+        id: ios_prereq
         shell: bash
         run: |
           set -euo pipefail
+
+          has_framework_task="false"
+          if ./gradlew -q :composeApp:tasks --all | grep -q 'embedAndSignAppleFrameworkForXcode'; then
+            has_framework_task="true"
+          fi
+
+          echo "has_framework_task=${has_framework_task}" >> "$GITHUB_OUTPUT"
+
           depth="${{ inputs.search_depth || '6' }}"
           workspace="$(find . -maxdepth "${depth}" -name '*.xcworkspace' -print -quit || true)"
           project="$(find . -maxdepth "${depth}" -name '*.xcodeproj' -print -quit || true)"
 
           if [[ -n "${workspace}" ]]; then
-            echo "container_type=workspace" >> "$GITHUB_OUTPUT"
-            echo "container_path=${workspace}" >> "$GITHUB_OUTPUT"
+            echo "has_xcode_container=true" >> "$GITHUB_OUTPUT"
+            echo "xcode_container_type=workspace" >> "$GITHUB_OUTPUT"
+            echo "xcode_container_path=${workspace}" >> "$GITHUB_OUTPUT"
           elif [[ -n "${project}" ]]; then
-            echo "container_type=project" >> "$GITHUB_OUTPUT"
-            echo "container_path=${project}" >> "$GITHUB_OUTPUT"
+            echo "has_xcode_container=true" >> "$GITHUB_OUTPUT"
+            echo "xcode_container_type=project" >> "$GITHUB_OUTPUT"
+            echo "xcode_container_path=${project}" >> "$GITHUB_OUTPUT"
           else
-            echo "No .xcworkspace/.xcodeproj found in repository." >&2
-            exit 1
+            echo "has_xcode_container=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::No .xcworkspace/.xcodeproj found in repository. IPA build steps will be skipped."
           fi
 
+          if [[ "${has_framework_task}" != "true" ]]; then
+            echo "::warning::Task ':composeApp:embedAndSignAppleFrameworkForXcode' is missing. IPA build steps will be skipped."
+          fi
+
+      # ÉTAPE AJOUTÉE : Compilation du Framework Kotlin pour iOS
+      # Cela génère les fichiers dont Xcode a besoin
+      - name: Build Kotlin Framework
+        if: steps.ios_prereq.outputs.has_framework_task == 'true' && steps.ios_prereq.outputs.has_xcode_container == 'true'
+        run: ./gradlew :composeApp:embedAndSignAppleFrameworkForXcode
+
       - name: Detect scheme
+        if: steps.ios_prereq.outputs.has_framework_task == 'true' && steps.ios_prereq.outputs.has_xcode_container == 'true'
         id: scheme
         shell: bash
         run: |
@@ -77,8 +93,8 @@ jobs:
             exit 0
           fi
 
-          container_type="${{ steps.xcode_target.outputs.container_type }}"
-          container_path="${{ steps.xcode_target.outputs.container_path }}"
+          container_type="${{ steps.ios_prereq.outputs.xcode_container_type }}"
+          container_path="${{ steps.ios_prereq.outputs.xcode_container_path }}"
           
           if [[ "${container_type}" == "workspace" ]]; then
             list_output="$(xcodebuild -list -json -workspace "${container_path}")"
@@ -96,11 +112,12 @@ jobs:
           echo "name=${scheme}" >> "$GITHUB_OUTPUT"
 
       - name: Build archive without signing
+        if: steps.ios_prereq.outputs.has_framework_task == 'true' && steps.ios_prereq.outputs.has_xcode_container == 'true'
         shell: bash
         run: |
           set -euo pipefail
-          container_type="${{ steps.xcode_target.outputs.container_type }}"
-          container_path="${{ steps.xcode_target.outputs.container_path }}"
+          container_type="${{ steps.ios_prereq.outputs.xcode_container_type }}"
+          container_path="${{ steps.ios_prereq.outputs.xcode_container_path }}"
           scheme="${{ steps.scheme.outputs.name }}"
           configuration="${{ inputs.configuration || 'Release' }}"
 
@@ -123,6 +140,7 @@ jobs:
           fi
 
       - name: Package unsigned IPA
+        if: steps.ios_prereq.outputs.has_framework_task == 'true' && steps.ios_prereq.outputs.has_xcode_container == 'true'
         shell: bash
         run: |
           set -euo pipefail
@@ -135,6 +153,7 @@ jobs:
           zip -r "unsigned.ipa" "Payload"
 
       - name: Upload unsigned IPA
+        if: steps.ios_prereq.outputs.has_framework_task == 'true' && steps.ios_prereq.outputs.has_xcode_container == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: Breadcrumb-Unsigned-${{ inputs.configuration || 'Release' }}
