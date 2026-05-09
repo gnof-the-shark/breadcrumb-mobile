@@ -51,10 +51,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          depth="${{ github.event.inputs.search_depth }}"
-          if [[ -z "${depth}" ]]; then
-            depth="6"
-          fi
+          depth="${{ inputs.search_depth || '6' }}"
           workspace="$(find . -maxdepth "${depth}" -name '*.xcworkspace' -print -quit || true)"
           project="$(find . -maxdepth "${depth}" -name '*.xcodeproj' -print -quit || true)"
 
@@ -74,7 +71,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          input_scheme="${{ github.event.inputs.scheme }}"
+          input_scheme="${{ inputs.scheme || '' }}"
           if [[ -n "${input_scheme}" ]]; then
             echo "name=${input_scheme}" >> "$GITHUB_OUTPUT"
             exit 0
@@ -105,10 +102,7 @@ jobs:
           container_type="${{ steps.xcode_target.outputs.container_type }}"
           container_path="${{ steps.xcode_target.outputs.container_path }}"
           scheme="${{ steps.scheme.outputs.name }}"
-          configuration="${{ github.event.inputs.configuration }}"
-          if [[ -z "${configuration}" ]]; then
-            configuration="Release"
-          fi
+          configuration="${{ inputs.configuration || 'Release' }}"
 
           build_args=(
             -scheme "${scheme}"
@@ -143,5 +137,5 @@ jobs:
       - name: Upload unsigned IPA
         uses: actions/upload-artifact@v4
         with:
-          name: Breadcrumb-Unsigned-${{ github.event.inputs.configuration || 'Release' }}
+          name: Breadcrumb-Unsigned-${{ inputs.configuration || 'Release' }}
           path: build/unsigned.ipa
