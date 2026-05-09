@@ -11,12 +11,23 @@ on:
         options:
           - Release
           - Debug
+      scheme:
+        description: Optional Xcode scheme override
+        required: false
+        default: ""
+        type: string
+      search_depth:
+        description: Max folder depth to find .xcworkspace/.xcodeproj
+        required: false
+        default: "6"
+        type: string
 
 jobs:
   build-unsigned-ipa:
     runs-on: macos-latest
     permissions:
       contents: read
+      actions: write
 
     steps:
       - name: Checkout
@@ -28,8 +39,14 @@ jobs:
         run: |
           set -euo pipefail
 
-          workspace="$(find . -maxdepth 3 -name '*.xcworkspace' -print -quit || true)"
-          project="$(find . -maxdepth 3 -name '*.xcodeproj' -print -quit || true)"
+          depth="${{ inputs.search_depth }}"
+          if ! [[ "${depth}" =~ ^[0-9]+$ ]]; then
+            echo "search_depth must be an integer." >&2
+            exit 1
+          fi
+
+          workspace="$(find . -maxdepth "${depth}" -name '*.xcworkspace' -print -quit || true)"
+          project="$(find . -maxdepth "${depth}" -name '*.xcodeproj' -print -quit || true)"
 
           if [[ -n "${workspace}" ]]; then
             echo "container_type=workspace" >> "$GITHUB_OUTPUT"
@@ -48,6 +65,13 @@ jobs:
         run: |
           set -euo pipefail
 
+          input_scheme="${{ inputs.scheme }}"
+          if [[ -n "${input_scheme}" ]]; then
+            echo "name=${input_scheme}" >> "$GITHUB_OUTPUT"
+            echo "Using provided scheme: ${input_scheme}"
+            exit 0
+          fi
+
           container_type="${{ steps.xcode_target.outputs.container_type }}"
           container_path="${{ steps.xcode_target.outputs.container_path }}"
 
@@ -61,7 +85,7 @@ jobs:
             data = JSON.parse(STDIN.read)
             root = data["workspace"] || data["project"] || {}
             schemes = root["schemes"] || []
-            selected = schemes.find { |s| !s.to_s.include?("Tests") } || schemes.first
+            selected = schemes.find { |s| s.to_s !~ /(Tests|UITests)$/ } || schemes.first
             puts selected.to_s
           ')"
 
