@@ -48,7 +48,7 @@ jobs:
           set -euo pipefail
 
           has_framework_task="false"
-          if ./gradlew -q :composeApp:tasks --all | grep -q 'embedAndSignAppleFrameworkForXcode'; then
+          if ./gradlew -q :composeApp:tasks --all 2>/dev/null | grep -q 'embedAndSignAppleFrameworkForXcode'; then
             has_framework_task="true"
           fi
 
