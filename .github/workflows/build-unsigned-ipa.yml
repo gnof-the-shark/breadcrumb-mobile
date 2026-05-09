@@ -130,7 +130,13 @@ jobs:
         run: |
           set -euo pipefail
 
-          app_path="$(find "${GITHUB_WORKSPACE}/build/App.xcarchive/Products/Applications" -maxdepth 1 -name '*.app' -print -quit || true)"
+          apps_dir="${GITHUB_WORKSPACE}/build/App.xcarchive/Products/Applications"
+          app_count="$(find "${apps_dir}" -maxdepth 1 -name '*.app' | wc -l | tr -d ' ')"
+          if [[ "${app_count}" -gt 1 ]]; then
+            echo "Warning: multiple .app bundles found; the first one will be used."
+          fi
+
+          app_path="$(find "${apps_dir}" -maxdepth 1 -name '*.app' -print -quit || true)"
           if [[ -z "${app_path}" ]]; then
             echo "No app found in archive." >&2
             exit 1
@@ -145,6 +151,6 @@ jobs:
       - name: Upload unsigned IPA
         uses: actions/upload-artifact@v4
         with:
-          name: unsigned-ipa
+          name: unsigned-ipa-${{ inputs.configuration }}-${{ github.run_id }}
           path: build/unsigned.ipa
           if-no-files-found: error
