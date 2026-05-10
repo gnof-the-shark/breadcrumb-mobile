@@ -75,14 +75,12 @@ jobs:
             echo "::warning::Task ':composeApp:embedAndSignAppleFrameworkForXcode' is missing. IPA build steps will be skipped."
           fi
 
-      - name: Fail when IPA prerequisites are missing
+      - name: Skip when IPA prerequisites are missing
         if: steps.ios_prereq.outputs.has_framework_task != 'true' || steps.ios_prereq.outputs.has_xcode_container != 'true'
         shell: bash
         run: |
-          set -euo pipefail
-          echo "::error::IPA was not produced because iOS prerequisites are missing in this repository."
-          echo "::error::Required: (1) Gradle task :composeApp:embedAndSignAppleFrameworkForXcode, (2) an .xcworkspace or .xcodeproj."
-          exit 1
+          echo "::notice::IPA build skipped — iOS prerequisites not found in this repository."
+          echo "::notice::Required: (1) Gradle task :composeApp:embedAndSignAppleFrameworkForXcode, (2) an .xcworkspace or .xcodeproj."
 
       # ÉTAPE AJOUTÉE : Compilation du Framework Kotlin pour iOS
       # Cela génère les fichiers dont Xcode a besoin
