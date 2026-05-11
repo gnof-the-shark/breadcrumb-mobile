@@ -21,7 +21,7 @@ kotlin {
         }
     }
 
-    // --- CONFIGURATION IOS AJOUTÉE ---
+    // --- CONFIGURATION IOS ---
     listOf(
         iosArm64(),
         iosSimulatorArm64()
@@ -35,6 +35,7 @@ kotlin {
     sourceSets {
         val commonMain by getting {
             dependencies {
+                // Compose Core
                 implementation(compose.runtime)
                 implementation(compose.foundation)
                 implementation(compose.material)
@@ -43,29 +44,23 @@ kotlin {
                 implementation(compose.ui)
                 implementation(compose.components.resources)
                 implementation(compose.components.uiToolingPreview)
+                
+                // Utilitaires Multiplatform
                 implementation(libs.multiplatform.settings)
                 implementation(libs.multiplatform.settings.no.arg)
                 implementation(libs.serialization.json)
                 implementation(libs.kotlinx.datetime)
                 implementation(libs.reorderable)
-                implementation(libs.androidx.activity.compose)
-                implementation(libs.androidx.navigation)
-                implementation(libs.ktor.server.netty)
-                implementation(libs.ktor.server.core)
-                implementation(libs.ktor.server.resources)
-                implementation(libs.ktor.server.call.logging)
-                implementation(libs.ktor.server.status.pages)
-                implementation(libs.ktor.server.content.negotiation)
-                implementation(libs.ktor.serialization.kotlinx.json)
+                implementation(libs.napier)
+                implementation(libs.uuid)
+                
+                // Ktor Client (Cœur commun)
                 implementation(libs.ktor.client.core)
                 implementation(libs.ktor.client.content.negotiation)
                 implementation(libs.ktor.client.logging)
                 implementation(libs.ktor.client.resources)
-                implementation(libs.logback.classic)
-                implementation(libs.napier)
-                implementation(libs.uuid)
-                implementation(libs.skiko.core)
-                implementation(libs.play.services.location)
+                
+                // Base de données Room
                 implementation(libs.androidx.room.runtime)
                 implementation(libs.androidx.sqlite.bundled)
             }
@@ -74,23 +69,43 @@ kotlin {
         val androidMain by getting {
             dependencies {
                 implementation(compose.preview)
+                implementation(libs.androidx.activity.compose)
+                implementation(libs.androidx.navigation)
+                implementation(libs.androidx.fragment)
+                
+                // Bibliothèques Android uniquement (JVM)
+                implementation(libs.play.services.location)
                 implementation(libs.gpx.parser)
                 implementation(libs.garmin.ciq.sdk)
+                implementation(libs.logback.classic)
+                
+                // Serveur Ktor (Ne fonctionne pas sur iOS)
+                implementation(libs.ktor.server.netty)
+                implementation(libs.ktor.server.core)
+                implementation(libs.ktor.server.call.logging)
+                implementation(libs.ktor.server.status.pages)
+                implementation(libs.ktor.server.content.negotiation)
+                implementation(libs.ktor.serialization.kotlinx.json)
+
+                // Moteurs de client spécifiques Android
                 implementation(libs.ktor.client.cio.jvm)
                 implementation(libs.ktor.client.okhttp)
                 implementation(libs.ktor.client.auth)
-                implementation(libs.androidx.fragment)
             }
         }
 
-        // Configuration des sources iOS
         val iosMain by creating {
             dependsOn(commonMain)
+            dependencies {
+                // Moteur Ktor spécifique à iOS (nécessaire pour le réseau sur iPhone)
+                implementation("io.ktor:ktor-client-darwin:3.1.1")
+            }
         }
     }
 }
 
 dependencies {
+    // KSP pour Room (Génération de code)
     add("kspCommonMainMetadata", libs.androidx.room.compiler)
     add("kspAndroid", libs.androidx.room.compiler)
     ksp(libs.androidx.room.compiler)
@@ -100,6 +115,7 @@ room {
     schemaDirectory("$projectDir/schemas")
 }
 
+// Fonction pour récupérer les infos Git (utilisée dans la config Android)
 fun executeCommand(command: String, workingDir: File = rootProject.projectDir, fallbackValue: String = ""): String {
     return try {
         val parts = command.split("\\s".toRegex())
@@ -111,13 +127,7 @@ fun executeCommand(command: String, workingDir: File = rootProject.projectDir, f
 
         proc.waitFor(5, TimeUnit.SECONDS)
         val output = proc.inputStream.bufferedReader().readText().trim()
-        if (proc.exitValue() != 0) {
-            val error = proc.errorStream.bufferedReader().readText().trim()
-            println("Warning: Command '$command' failed. Using fallback: '$fallbackValue'")
-            fallbackValue
-        } else {
-            output
-        }
+        if (proc.exitValue() != 0) fallbackValue else output
     } catch (e: Exception) {
         fallbackValue
     }
@@ -141,6 +151,7 @@ android {
         versionCode = gitCommitCount
         versionName = gitVersionName
     }
+    
     packaging {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
@@ -148,27 +159,27 @@ android {
             excludes += "/META-INF/io.netty.versions.properties"
         }
     }
+    
     buildTypes {
         getByName("release") {
             isMinifyEnabled = false
-            manifestPlaceholders.put("appIcon", "@mipmap/iconlarge")
-            manifestPlaceholders.put("appIconRound", "@mipmap/iconlarge")
+            manifestPlaceholders["appIcon"] = "@mipmap/iconlarge"
+            manifestPlaceholders["appIconRound"] = "@mipmap/iconlarge"
         }
         debug {
             applicationIdSuffix = ".debug"
-            manifestPlaceholders.put("appIcon", "@mipmap/iconlargedebug")
-            manifestPlaceholders.put("appIconRound", "@mipmap/iconlargedebug")
+            manifestPlaceholders["appIcon"] = "@mipmap/iconlargedebug"
+            manifestPlaceholders["appIconRound"] = "@mipmap/iconlargedebug"
         }
     }
+    
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
     }
+    
     buildFeatures {
         compose = true
         buildConfig = true
-    }
-    dependencies {
-        debugImplementation(compose.uiTooling)
     }
 }
