@@ -21,6 +21,7 @@ kotlin {
         }
     }
 
+    // Configuration des cibles iOS pour générer le framework
     listOf(
         iosArm64(),
         iosSimulatorArm64()
@@ -81,13 +82,14 @@ kotlin {
         val iosMain by creating {
             dependsOn(commonMain)
             dependencies {
-                implementation("io.ktor:ktor-client-darwin:3.1.1")
+                // Client Ktor spécifique à iOS (Darwin)
+                implementation("io.ktor:ktor-client-darwin:3.0.0") 
             }
         }
     }
 }
 
-// --- CONFIGURATION KSP & ROOM CRUCIALE ---
+// --- CONFIGURATION KSP & ROOM ---
 dependencies {
     add("kspAndroid", libs.androidx.room.compiler)
     add("kspIosArm64", libs.androidx.room.compiler)
@@ -98,13 +100,13 @@ room {
     schemaDirectory("$projectDir/schemas")
 }
 
-// Optionnel: Empêcher KSP de planter pour des broutilles
 project.tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {
     kotlinOptions {
         freeCompilerArgs += "-Xexpect-actual-classes"
     }
 }
 
+// Logique Git pour le versioning
 fun executeCommand(command: String, workingDir: File = rootProject.projectDir, fallbackValue: String = ""): String {
     return try {
         val parts = command.split("\\s".toRegex())
@@ -123,8 +125,9 @@ val gitCommitCount = executeCommand("git rev-list --count HEAD", fallbackValue =
 val gitVersionName = executeCommand("git describe --tags --dirty --always", fallbackValue = "0.1.0-SNAPSHOT")
 
 android {
-    namespace = "com.paul"
+    namespace = "com.paul.breadcrumb"
     compileSdk = libs.versions.android.compileSdk.get().toInt()
+    
     sourceSets["main"].manifest.srcFile("src/androidMain/AndroidManifest.xml")
     sourceSets["main"].res.srcDirs("src/androidMain/res")
     sourceSets["main"].resources.srcDirs("src/commonMain/resources")
