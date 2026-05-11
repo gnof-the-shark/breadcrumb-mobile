@@ -1,6 +1,10 @@
 name: Build iOS (Unsigned)
 
 on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
   workflow_dispatch:
     inputs:
       configuration:
@@ -28,7 +32,6 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v3
 
-      # Étape cruciale pour Kotlin Multiplatform
       - name: Build Kotlin Framework
         run: ./gradlew :composeApp:embedAndSignAppleFrameworkForXcode
 
@@ -61,9 +64,12 @@ jobs:
       - name: Build Archive (No Signing)
         run: |
           ARG_TYPE="-${{ steps.xcode_info.outputs.type }}"
+          # Utilise l'input si lancé manuellement, sinon Release par défaut
+          CONFIG="${{ github.event.inputs.configuration || 'Release' }}"
+          
           xcodebuild $ARG_TYPE "${{ steps.xcode_info.outputs.path }}" \
             -scheme "${{ steps.scheme.outputs.name }}" \
-            -configuration ${{ inputs.configuration }} \
+            -configuration $CONFIG \
             -sdk iphoneos \
             -archivePath build/App.xcarchive \
             archive \
@@ -81,5 +87,5 @@ jobs:
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: iOS-Unsigned-IPA
+          name: iOS-Unsigned-IPA-${{ github.sha }}
           path: build/Breadcrumb_iOS_Unsigned.ipa
