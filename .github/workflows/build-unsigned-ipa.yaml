@@ -32,10 +32,11 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v3
 
-      - name: Clean & Fix Kotlin Native Toolchain
+      - name: Clean & Setup Kotlin Native
         run: |
           rm -rf ~/.konan
-          ./gradlew :composeApp:kotlinNativePrecompute
+          # On ne lance pas precompute, Gradle téléchargera les dépendances 
+          # automatiquement lors du build du framework.
 
       - name: Build Kotlin Framework
         run: |
