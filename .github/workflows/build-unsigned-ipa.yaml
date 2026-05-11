@@ -39,17 +39,16 @@ jobs:
 
       - name: Build Kotlin Framework
         run: |
+          # Génération des fichiers Room/KSP pour iOS
           ./gradlew :composeApp:kspKotlinIosArm64 --stacktrace
           
+          # Liaison du code Kotlin vers le framework Apple
           ./gradlew :composeApp:embedAndSignAppleFrameworkForXcode \
             -Pkotlin.native.apple.target=iphoneos \
             -Pkotlin.native.cocoapods.platform=iphoneos \
             -Pkotlin.native.cocoapods.archs=arm64 \
             -Pkotlin.native.cocoapods.configuration=Release \
             -Pcompose.ios.resources.deletion.disabled=true
-        env:
-          GRADLE_OPTS: -Dorg.gradle.jvmargs="-Xmx4g -XX:MaxMetaspaceSize=1g"
-          # ... reste des variables env
         env:
           GRADLE_OPTS: -Dorg.gradle.jvmargs="-Xmx4g -XX:MaxMetaspaceSize=1g"
           PLATFORM_NAME: iphoneos
