@@ -1,4 +1,4 @@
-[![Build iOS (Unsigned)](https://github.com/gnof-the-shark/breadcrumb-mobile/actions/workflows/build-unsigned-ipa.yaml/badge.svg)](https://github.com/gnof-the-shark/breadcrumb-mobile/actions/workflows/build-unsigned-ipa.yaml)
+[![Build iOS (Unsigned)](https://github.com/gnof-the-shark/breadcrumb-mobile/actions/workflows/build-unsigned-ipa.yaml/badge.svg)](https://github.com/gnof-the-shark/breadcrumb-mobile/actions/workflows/build-unsigned-ipa.yaml)/n
 The companion app for loading gpx routes onto garmin watches that are using https://github.com/pauljohnston2025/breadcrumb-garmin.
 
 Donations are always welcome, but not required: https://www.paypal.com/paypalme/pauljohnston2025
