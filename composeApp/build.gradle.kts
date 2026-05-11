@@ -21,7 +21,6 @@ kotlin {
         }
     }
 
-    // --- CONFIGURATION IOS ---
     listOf(
         iosArm64(),
         iosSimulatorArm64()
@@ -88,9 +87,8 @@ kotlin {
     }
 }
 
-// --- CORRECTION KSP POUR IOS ---
+// --- CONFIGURATION KSP & ROOM CRUCIALE ---
 dependencies {
-    // On cible explicitement chaque plateforme pour KSP
     add("kspAndroid", libs.androidx.room.compiler)
     add("kspIosArm64", libs.androidx.room.compiler)
     add("kspIosSimulatorArm64", libs.androidx.room.compiler)
@@ -98,6 +96,13 @@ dependencies {
 
 room {
     schemaDirectory("$projectDir/schemas")
+}
+
+// Optionnel: Empêcher KSP de planter pour des broutilles
+project.tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {
+    kotlinOptions {
+        freeCompilerArgs += "-Xexpect-actual-classes"
+    }
 }
 
 fun executeCommand(command: String, workingDir: File = rootProject.projectDir, fallbackValue: String = ""): String {
@@ -144,11 +149,6 @@ android {
             isMinifyEnabled = false
             manifestPlaceholders["appIcon"] = "@mipmap/iconlarge"
             manifestPlaceholders["appIconRound"] = "@mipmap/iconlarge"
-        }
-        debug {
-            applicationIdSuffix = ".debug"
-            manifestPlaceholders["appIcon"] = "@mipmap/iconlargedebug"
-            manifestPlaceholders["appIconRound"] = "@mipmap/iconlargedebug"
         }
     }
     
