@@ -34,7 +34,7 @@ jobs:
 
       - name: Build Kotlin Framework
         run: |
-          # Liaison du code Kotlin vers le framework Apple
+          # Link Kotlin code into the Apple framework
           ./gradlew :composeApp:embedAndSignAppleFrameworkForXcode \
             -Pkotlin.native.apple.target=iphoneos \
             -Pkotlin.native.cocoapods.platform=iphoneos \
