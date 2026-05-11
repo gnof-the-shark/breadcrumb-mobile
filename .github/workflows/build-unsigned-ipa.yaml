@@ -31,18 +31,18 @@ jobs:
 
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v3
+
       - name: Clean & Fix Kotlin Native Toolchain
-  run: |
-    rm -rf ~/.konan
-    # On force Gradle à télécharger les composants natifs avant le build principal
-    ./gradlew :composeApp:kotlinNativePrecompute
+        run: |
+          rm -rf ~/.konan
+          ./gradlew :composeApp:kotlinNativePrecompute
 
       - name: Build Kotlin Framework
-        # On force d'abord KSP à générer les fichiers Room avec un stacktrace pour le debug
-        # Puis on lance le build en simulant l'environnement Xcode
         run: |
+          # On génère d'abord les fichiers KSP/Room pour iOS
           ./gradlew :composeApp:kspKotlinIosArm64 --stacktrace
           
+          # Compilation du framework pour Xcode
           ./gradlew :composeApp:embedAndSignAppleFrameworkForXcode \
             -Pkotlin.native.apple.target=iphoneos \
             -Pkotlin.native.cocoapods.platform=iphoneos \
@@ -50,6 +50,7 @@ jobs:
             -Pkotlin.native.cocoapods.configuration=Release \
             -Pcompose.ios.resources.deletion.disabled=true
         env:
+          GRADLE_OPTS: -Dorg.gradle.jvmargs="-Xmx4g -XX:MaxMetaspaceSize=1g"
           PLATFORM_NAME: iphoneos
           SDK_NAME: iphoneos
           ARCHS: arm64
