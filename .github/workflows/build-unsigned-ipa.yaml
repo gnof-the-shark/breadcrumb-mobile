@@ -34,6 +34,7 @@ jobs:
 
       - name: Build Kotlin Framework
         run: |
+          # Workaround: native KSP tasks currently fail in CI and block IPA generation.
           # Link Kotlin code into the Apple framework
           ./gradlew :composeApp:embedAndSignAppleFrameworkForXcode \
             -Pkotlin.native.apple.target=iphoneos \
@@ -41,7 +42,6 @@ jobs:
             -Pkotlin.native.cocoapods.archs=arm64 \
             -Pkotlin.native.cocoapods.configuration=${{ github.event.inputs.configuration || 'Release' }} \
             -Pcompose.ios.resources.deletion.disabled=true \
-            # Workaround: native KSP tasks currently fail in CI and block IPA generation.
             -x :composeApp:kspKotlinIosArm64 \
             -x :composeApp:kspKotlinIosSimulatorArm64
         env:
