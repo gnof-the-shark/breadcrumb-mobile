@@ -35,6 +35,7 @@ jobs:
       - name: Build Kotlin Framework
         run: |
           # TODO: Remove this temporary workaround once native KSP iOS CI failure is fixed.
+          # Note: this skips native Room/KSP codegen checks in this artifact-only CI job.
           # Link Kotlin code into the Apple framework
           ./gradlew :composeApp:embedAndSignAppleFrameworkForXcode \
             -Pkotlin.native.apple.target=iphoneos \
