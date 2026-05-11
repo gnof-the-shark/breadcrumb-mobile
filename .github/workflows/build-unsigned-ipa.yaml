@@ -40,7 +40,9 @@ jobs:
             -Pkotlin.native.cocoapods.platform=iphoneos \
             -Pkotlin.native.cocoapods.archs=arm64 \
             -Pkotlin.native.cocoapods.configuration=${{ github.event.inputs.configuration || 'Release' }} \
-            -Pcompose.ios.resources.deletion.disabled=true
+            -Pcompose.ios.resources.deletion.disabled=true \
+            -x :composeApp:kspKotlinIosArm64 \
+            -x :composeApp:kspKotlinIosSimulatorArm64
         env:
           GRADLE_OPTS: -Dorg.gradle.jvmargs="-Xmx4g -XX:MaxMetaspaceSize=1g"
           PLATFORM_NAME: iphoneos
