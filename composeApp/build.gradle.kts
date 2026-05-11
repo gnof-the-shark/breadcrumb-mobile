@@ -21,7 +21,7 @@ kotlin {
         }
     }
 
-    // Configuration des cibles iOS pour générer le framework
+    // Configuration des cibles iOS
     listOf(
         iosArm64(),
         iosSimulatorArm64()
@@ -79,13 +79,16 @@ kotlin {
             }
         }
 
+        // Correction du lien iosMain pour qu'il soit reconnu par les compilations iOS
         val iosMain by creating {
             dependsOn(commonMain)
             dependencies {
-                // Client Ktor spécifique à iOS (Darwin)
                 implementation("io.ktor:ktor-client-darwin:3.0.0") 
             }
         }
+
+        val iosArm64Main by getting { dependsOn(iosMain) }
+        val iosSimulatorArm64Main by getting { dependsOn(iosMain) }
     }
 }
 
@@ -100,9 +103,10 @@ room {
     schemaDirectory("$projectDir/schemas")
 }
 
-project.tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {
-    kotlinOptions {
-        freeCompilerArgs += "-Xexpect-actual-classes"
+// Correction de la syntaxe obsolète (supprime le warning kotlinOptions)
+tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompilationTask<*>>().configureEach {
+    compilerOptions {
+        freeCompilerArgs.add("-Xexpect-actual-classes")
     }
 }
 
