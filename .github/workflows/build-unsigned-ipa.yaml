@@ -35,16 +35,18 @@ jobs:
       # ÉTAPE CORRIGÉE : Détection automatique de la tâche Kotlin
       - name: Build Kotlin Framework
         run: |
-          # Cherche la tâche qui contient "embedAndSignAppleFrameworkForXcode"
-          KOTLIN_TASK=$(./gradlew tasks --all | grep "embedAndSignAppleFrameworkForXcode" | head -n 1 | awk '{print $1}')
-          
-          if [ -z "$KOTLIN_TASK" ]; then
-            echo "Erreur : Tâche de framework iOS introuvable. Vérifiez la configuration KMP."
-            exit 1
-          fi
-          
-          echo "Exécution de la tâche : $KOTLIN_TASK"
-          ./gradlew $KOTLIN_TASK
+          # On définit manuellement les variables que Xcode enverrait normalement
+          # Cela permet de corriger l'erreur 'Could not infer iOS target architectures'
+          ./gradlew :composeApp:embedAndSignAppleFrameworkForXcode \
+            -Pkotlin.native.cocoapods.platform=iphoneos \
+            -Pkotlin.native.cocoapods.archs=arm64 \
+            -Pkotlin.native.cocoapods.configuration=Release \
+            -Pkotlin.native.apple.target=iphoneos
+        env:
+          XCODE_VERSION_MAJOR: 15
+          ARCHS: arm64
+          SDK_NAME: iphoneos
+          CONFIGURATION: Release
 
       - name: Detect Xcode Project
         id: xcode_info
