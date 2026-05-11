@@ -41,6 +41,7 @@ jobs:
             -Pkotlin.native.cocoapods.archs=arm64 \
             -Pkotlin.native.cocoapods.configuration=${{ github.event.inputs.configuration || 'Release' }} \
             -Pcompose.ios.resources.deletion.disabled=true \
+            # Workaround: native KSP tasks currently fail in CI and block IPA generation.
             -x :composeApp:kspKotlinIosArm64 \
             -x :composeApp:kspKotlinIosSimulatorArm64
         env:
