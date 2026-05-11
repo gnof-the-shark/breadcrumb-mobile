@@ -31,6 +31,11 @@ jobs:
 
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v3
+      - name: Clean & Fix Kotlin Native Toolchain
+  run: |
+    rm -rf ~/.konan
+    # On force Gradle à télécharger les composants natifs avant le build principal
+    ./gradlew :composeApp:kotlinNativePrecompute
 
       - name: Build Kotlin Framework
         # On force d'abord KSP à générer les fichiers Room avec un stacktrace pour le debug
