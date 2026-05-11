@@ -33,8 +33,11 @@ jobs:
         uses: gradle/actions/setup-gradle@v3
 
       - name: Build Kotlin Framework
-        # On simule un environnement Xcode complet pour satisfaire le plugin Compose
+        # On force d'abord KSP à générer les fichiers Room avec un stacktrace pour le debug
+        # Puis on lance le build en simulant l'environnement Xcode
         run: |
+          ./gradlew :composeApp:kspKotlinIosArm64 --stacktrace
+          
           ./gradlew :composeApp:embedAndSignAppleFrameworkForXcode \
             -Pkotlin.native.apple.target=iphoneos \
             -Pkotlin.native.cocoapods.platform=iphoneos \
@@ -99,7 +102,7 @@ jobs:
           mkdir -p build/Payload
           APP_PATH=$(find build/App.xcarchive/Products/Applications -name "*.app" -maxdepth 1)
           if [ -z "$APP_PATH" ]; then
-            echo "Erreur : Fichier .app introuvable dans l'archive."
+            echo "Erreur : Fichier .app introuvable."
             exit 1
           fi
           cp -R "$APP_PATH" build/Payload/
@@ -108,5 +111,5 @@ jobs:
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: iOS-Unsigned-IPA-${{ github.sha }}
+          name: iOS-Unsigned-IPA
           path: build/Breadcrumb_iOS_Unsigned.ipa
