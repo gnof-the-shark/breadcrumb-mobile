@@ -32,8 +32,19 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v3
 
+      # ÉTAPE CORRIGÉE : Détection automatique de la tâche Kotlin
       - name: Build Kotlin Framework
-        run: ./gradlew :composeApp:embedAndSignAppleFrameworkForXcode
+        run: |
+          # Cherche la tâche qui contient "embedAndSignAppleFrameworkForXcode"
+          KOTLIN_TASK=$(./gradlew tasks --all | grep "embedAndSignAppleFrameworkForXcode" | head -n 1 | awk '{print $1}')
+          
+          if [ -z "$KOTLIN_TASK" ]; then
+            echo "Erreur : Tâche de framework iOS introuvable. Vérifiez la configuration KMP."
+            exit 1
+          fi
+          
+          echo "Exécution de la tâche : $KOTLIN_TASK"
+          ./gradlew $KOTLIN_TASK
 
       - name: Detect Xcode Project
         id: xcode_info
@@ -55,16 +66,15 @@ jobs:
           TYPE="${{ steps.xcode_info.outputs.type }}"
           
           if [ "$TYPE" == "workspace" ]; then
-            SCHEME=$(xcodebuild -list -json -workspace "$TARGET_PATH" | ruby -rjson -e 'puts JSON.parse(STDIN.read)["workspace"]["schemes"][0]')
+            SCHEME=$(xcodebuild -list -json -workspace "$TARGET_PATH" | ruby -rjson -e 'puts JSON.parse(STDIN.read)["workspace"]["schemes"].find { |s| s !~ /Tests/ }')
           else
-            SCHEME=$(xcodebuild -list -json -project "$TARGET_PATH" | ruby -rjson -e 'puts JSON.parse(STDIN.read)["project"]["schemes"][0]')
+            SCHEME=$(xcodebuild -list -json -project "$TARGET_PATH" | ruby -rjson -e 'puts JSON.parse(STDIN.read)["project"]["schemes"].find { |s| s !~ /Tests/ }')
           fi
           echo "name=$SCHEME" >> $GITHUB_OUTPUT
 
       - name: Build Archive (No Signing)
         run: |
           ARG_TYPE="-${{ steps.xcode_info.outputs.type }}"
-          # Utilise l'input si lancé manuellement, sinon Release par défaut
           CONFIG="${{ github.event.inputs.configuration || 'Release' }}"
           
           xcodebuild $ARG_TYPE "${{ steps.xcode_info.outputs.path }}" \
