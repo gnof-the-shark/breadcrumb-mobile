@@ -34,7 +34,7 @@ jobs:
 
       - name: Build Kotlin Framework
         run: |
-          # Workaround: native KSP tasks currently fail in CI and block IPA generation.
+          # TODO: Remove this temporary workaround once native KSP iOS CI failure is fixed.
           # Link Kotlin code into the Apple framework
           ./gradlew :composeApp:embedAndSignAppleFrameworkForXcode \
             -Pkotlin.native.apple.target=iphoneos \
