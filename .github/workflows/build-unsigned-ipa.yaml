@@ -32,6 +32,30 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v3
 
+      - name: Cache Kotlin/Native distribution
+        uses: actions/cache@v4
+        with:
+          path: ~/.konan
+          key: ${{ runner.os }}-konan-${{ hashFiles('gradle/libs.versions.toml') }}
+          restore-keys: |
+            ${{ runner.os }}-konan-
+
+      - name: Validate Kotlin/Native toolchain cache
+        run: |
+          KOTLIN_VERSION=$(awk -F '"' '/^kotlin = / { print $2; exit }' gradle/libs.versions.toml)
+          ARCH=$(uname -m)
+          if [ "$ARCH" = "arm64" ] || [ "$ARCH" = "aarch64" ]; then
+            KONAN_ARCH="aarch64"
+          else
+            KONAN_ARCH="x86_64"
+          fi
+          KONAN_DIR="$HOME/.konan/kotlin-native-prebuilt-macos-${KONAN_ARCH}-${KOTLIN_VERSION}"
+
+          if [ -d "$KONAN_DIR" ] && [ ! -f "$KONAN_DIR/tools/env_blacklist" ]; then
+            echo "Incomplete Kotlin/Native toolchain detected in $KONAN_DIR; removing it."
+            rm -rf "$KONAN_DIR"
+          fi
+
       - name: Build Kotlin Framework
         run: |
           # Link Kotlin code into the Apple framework
