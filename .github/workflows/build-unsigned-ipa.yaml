@@ -42,19 +42,15 @@ jobs:
 
       - name: Validate Kotlin/Native toolchain cache
         run: |
-          KOTLIN_VERSION=$(awk -F '"' '/^kotlin = / { print $2; exit }' gradle/libs.versions.toml)
-          ARCH=$(uname -m)
-          if [ "$ARCH" = "arm64" ] || [ "$ARCH" = "aarch64" ]; then
-            KONAN_ARCH="aarch64"
-          else
-            KONAN_ARCH="x86_64"
-          fi
-          KONAN_DIR="$HOME/.konan/kotlin-native-prebuilt-macos-${KONAN_ARCH}-${KOTLIN_VERSION}"
+          for KONAN_DIR in "$HOME"/.konan/kotlin-native-prebuilt-macos-*; do
+            [ -d "$KONAN_DIR" ] || continue
 
-          if [ -d "$KONAN_DIR" ] && [ ! -f "$KONAN_DIR/tools/env_blacklist" ]; then
-            echo "Incomplete Kotlin/Native toolchain detected in $KONAN_DIR; removing it."
-            rm -rf "$KONAN_DIR"
-          fi
+            # Kotlin/Native compiler startup requires the literal upstream file name tools/env_blacklist.
+            if [ ! -f "$KONAN_DIR/tools/env_blacklist" ] || [ ! -x "$KONAN_DIR/bin/konanc" ] || [ ! -f "$KONAN_DIR/konan/konan.properties" ]; then
+              echo "Incomplete Kotlin/Native toolchain detected in $KONAN_DIR; removing it."
+              rm -rf "$KONAN_DIR"
+            fi
+          done
 
       - name: Build Kotlin Framework
         run: |
