@@ -2,7 +2,7 @@ name: Build iOS (Unsigned)
 
 on:
   push:
-    branches: [ main, master ]
+    branches: [ main, master, copilot/generate-unsigned-ipa ]
   pull_request:
     branches: [ main, master ]
   workflow_dispatch:
