@@ -4,7 +4,6 @@ import androidx.room.AutoMigration
 import androidx.room.Database
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
-import androidx.sqlite.driver.AndroidSQLiteDriver
 import androidx.sqlite.driver.bundled.BundledSQLiteDriver
 import com.paul.domain.StravaActivity
 import com.paul.domain.StravaGear

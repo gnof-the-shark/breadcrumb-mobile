@@ -83,7 +83,7 @@ kotlin {
         val iosMain by creating {
             dependsOn(commonMain)
             dependencies {
-                implementation("io.ktor:ktor-client-darwin:3.0.0") 
+                implementation(libs.ktor.client.darwin)
             }
         }
 

@@ -42,7 +42,7 @@ jobs:
 
       - name: Clean incomplete Kotlin Native toolchains
         run: |
-          find ~/.konan -maxdepth 1 -name "kotlin-native-prebuilt-macos-*" 2>/dev/null | while read dir; do
+          find ~/.konan -maxdepth 1 -name "kotlin-native-prebuilt-macos-*" 2>/dev/null | while IFS= read -r dir; do
             if [ ! -f "$dir/tools/env_blacklist" ]; then
               echo "Removing incomplete toolchain: $dir"
               rm -rf "$dir"
