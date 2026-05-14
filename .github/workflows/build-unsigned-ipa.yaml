@@ -32,6 +32,23 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v3
 
+      - name: Cache Kotlin Native Toolchain
+        uses: actions/cache@v4
+        with:
+          path: ~/.konan
+          key: ${{ runner.os }}-konan-${{ hashFiles('gradle/libs.versions.toml') }}
+          restore-keys: |
+            ${{ runner.os }}-konan-
+
+      - name: Clean incomplete Kotlin Native toolchains
+        run: |
+          find ~/.konan -maxdepth 1 -name "kotlin-native-prebuilt-macos-*" 2>/dev/null | while IFS= read -r dir; do
+            if [ ! -f "$dir/tools/env_blacklist" ]; then
+              echo "Removing incomplete toolchain: $dir"
+              rm -rf "$dir"
+            fi
+          done
+
       - name: Build Kotlin Framework
         run: |
           # Link Kotlin code into the Apple framework
